@@ -1,10 +1,11 @@
+from helpers import MoveHelper
 
 
-class Paddle:
+class Item:
 
     def __init__(self, width=None, height=None, position=None, colour=None, step=None):
         """
-        Paddle manager.
+        Item manager(ball, paddle, blocks, etc.).
         :return:
         """
         self._size = width, height
@@ -27,7 +28,7 @@ class Paddle:
     def step(self, length=None):
         """
         Movement length.
-        :param lenght:
+        :param length:
         :return:
         """
         if length is not None:
@@ -44,6 +45,8 @@ class Paddle:
             self._position = (x, y)
         if x is not None:
             self._position = (x, self._position[1])
+        if y is not None:
+            self._position = (self._position[0], y)
         else:
             return self._position
 
@@ -63,11 +66,15 @@ class Paddle:
         :param direction:
         :return:
         """
-        x, y = self.position()
+        move_x, move_y = self.position()
         if direction == self.direction.LEFT:
-            self.position(x - self.step())
+            self.position(x=move_x - self.step())
         if direction == self.direction.RIGHT:
-            self.position(x + self.step())
+            self.position(x=move_x + self.step())
+        if direction == self.direction.UP:
+            self.position(y=move_y - self.step())
+        if direction == self.direction.DOWN:
+            self.position(y=move_y + self.step())
 
     def render(self):
         """
@@ -76,21 +83,3 @@ class Paddle:
         """
         return self.colour(), (self.position()[0], self.position()[1],
                                self.size()[0], self.size()[1])
-
-
-class MoveHelper:
-
-    def __init__(self):
-        self.LEFT = 0
-        self.RIGHT = 1
-
-    def opposite(self, direction):
-        """
-        Returns the opposite of the direction.
-        :param direction:
-        :return:
-        """
-        if direction == self.LEFT:
-            return self.RIGHT
-        if direction == self.RIGHT:
-            return self.LEFT
