@@ -3,7 +3,7 @@ from helpers import MoveHelper
 
 class Item:
 
-    def __init__(self, width=None, height=None, position=None, colour=None, step=None):
+    def __init__(self, width=1, height=1, position=(0, 0), colour=(0, 0, 0), step=1):
         """
         Item manager(ball, paddle, blocks, etc.).
         :return:
@@ -11,7 +11,13 @@ class Item:
         self._size = width, height
         self._position = position
         self._colour = colour
-        self._step = step
+        self._velocity = step
+
+        self.left = self._position[0]
+        self.top = self._position[1]
+        self.right = self._position[0] + self._size[0]
+        self.bottom = self._position[1] + self._size[1]
+        self.middle = self.right/2
 
         self.direction = MoveHelper()
 
@@ -25,16 +31,21 @@ class Item:
         else:
             return self._size
 
-    def step(self, length=None):
+        self.left = self._position[0]
+        self.top = self._position[1]
+        self.right = self._position[0] + self._size[0]
+        self.bottom = self._position[1] + self._size[1]
+
+    def velocity(self, speed=None):
         """
         Movement length.
-        :param length:
+        :param speed:
         :return:
         """
-        if length is not None:
-            self._step = length
+        if speed is not None:
+            self._velocity = speed
         else:
-            return self._step
+            return self._velocity
 
     def position(self, x=None, y=None):
         """
@@ -49,6 +60,11 @@ class Item:
             self._position = (self._position[0], y)
         else:
             return self._position
+
+        self.left = self._position[0]
+        self.top = self._position[1]
+        self.right = self._position[0] + self._size[0]
+        self.bottom = self._position[1] + self._size[1]
 
     def colour(self, colour=None):
         """
@@ -68,13 +84,18 @@ class Item:
         """
         move_x, move_y = self.position()
         if direction == self.direction.LEFT:
-            self.position(x=move_x - self.step())
+            self.position(x=move_x - self.velocity())
         if direction == self.direction.RIGHT:
-            self.position(x=move_x + self.step())
+            self.position(x=move_x + self.velocity())
         if direction == self.direction.UP:
-            self.position(y=move_y - self.step())
+            self.position(y=move_y - self.velocity())
         if direction == self.direction.DOWN:
-            self.position(y=move_y + self.step())
+            self.position(y=move_y + self.velocity())
+
+        self.left = self._position[0]
+        self.top = self._position[1]
+        self.right = self._position[0] + self._size[0]
+        self.bottom = self._position[1] + self._size[1]
 
     def render(self):
         """

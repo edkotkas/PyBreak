@@ -1,6 +1,6 @@
 import pygame
+import random
 import sys
-import time
 import os
 
 from items import Item
@@ -9,7 +9,7 @@ from levels import Level
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
 GRID_ENABLED = False
-GAME_ENABLED = True
+
 
 class PyBreak:
 
@@ -28,6 +28,12 @@ class PyBreak:
         self.window_width = 640
         self.window_height = 640
 
+        # border helper
+        self.window_border_top = 0
+        self.window_border_left = 0
+        self.window_border_right = self.window_width
+        self.window_border_bottom = self.window_height
+
         self.grid_size = 40
         self.grid_x = self.window_width / self.grid_size
         self.grid_y = self.window_height / self.grid_size
@@ -40,27 +46,25 @@ class PyBreak:
         # paddle settings
         self.paddle = Item()
 
-        self.paddle_width = 5
+        self.paddle_width = 9
+
+        # change the single number up to half of the paddle width
+        self.paddle_divert_range = self.grid_x * 3
 
         self.paddle.size(self.grid_x * self.paddle_width, self.grid_y)
-        self.paddle.step(self.grid_x)
-        self.paddle.position(self.grid_x * 18, self.grid_y * 34)
+        self.paddle.velocity(15)
+        self.paddle.position(self.window_width/2 - self.paddle.size()[0]/2, self.grid_y * 34)
         self.paddle.colour((150, 75, 25))
-
-        self.paddle_boundary_left = 0
-        self.paddle_boundary_right = self.window_width - self.paddle.size()[0]
 
         # ball settings
         self.ball = Item()
         self.ball.size(self.grid_x, self.grid_y)
-        self.ball.step(self.grid_y)
-        self.ball.position(self.grid_x * 19, self.grid_y * 30)
+        self.ball.velocity(4)
+        self.ball.position(
+            self.paddle.position()[0] + self.paddle.size()[0]/2 - self.ball.size()[0]/2,
+            self.paddle.top - self.ball.size()[0]
+        )
         self.ball.colour((255, 0, 100))
-
-        self.ball_boundary_top = 0 - self.ball.size()[1]
-        self.ball_boundary_left = 0
-        self.ball_boundary_bottom = self.window_height - self.ball.size()[1]
-        self.ball_boundary_right = self.window_width - self.ball.size()[0]
 
         # level settings
         self.level = Level(self.grid_x, self.grid_y)
@@ -70,18 +74,12 @@ class PyBreak:
         Main game loop.
         :return:
         """
-        x, y = 0, 1
-
-        st = time.time()
-
-        key_time = 0
-        key_delay = 0.027
-
-        ball_speed = .025
-
         paddle_direction = None
-        ball_direction_y = self.ball.direction.DOWN
-        ball_direction_x = self.ball.direction.RIGHT
+        paddle_move_allowed = True
+        ball_direction_y = self.ball.direction.UP
+        ball_direction_x = random.choice([self.ball.direction.LEFT, self.ball.direction.RIGHT])
+
+        game_started = False
 
         while True:
             self.screen.fill((10, 10, 10))
@@ -92,7 +90,6 @@ class PyBreak:
                     sys.exit()
 
                 if event.type == pygame.KEYDOWN:
-                    key_time = time.time()
                     if event.key == pygame.K_ESCAPE:
                         sys.exit()
 
@@ -103,6 +100,8 @@ class PyBreak:
                         paddle_direction = self.paddle.direction.RIGHT
                     if event.key == pygame.K_LEFT:
                         paddle_direction = self.paddle.direction.LEFT
+                    if event.key == pygame.K_SPACE and game_started is False:
+                        game_started = True
 
                 if event.type == pygame.KEYUP:
                     paddle_direction = None
@@ -117,92 +116,89 @@ class PyBreak:
                             self.grid_x, self.grid_y
                         ), 1)
 
-            if GAME_ENABLED is True:
-                # paddle boundary detection
-                if paddle_direction is self.paddle.direction.LEFT and \
-                        self.paddle.position()[x] == self.paddle_boundary_left or \
-                        paddle_direction is self.paddle.direction.RIGHT and \
-                        self.paddle.position()[x] == self.paddle_boundary_right:
-                    move = False
-                else:
-                    move = True
+            # renders the paddle
+            pygame.draw.rect(self.screen, *self.paddle.render())
 
-                # paddle movement timer
-                if time.time() - key_time > key_delay and move is True:
-                    self.paddle.move(paddle_direction)
+            # paddle movement control
+            if paddle_move_allowed is True:
+                self.paddle.move(paddle_direction)
 
-                # renders the paddle
-                pygame.draw.rect(self.screen, *self.paddle.render())
+            # paddle boundary detection
+            if self.paddle.left > self.window_border_left \
+                    and paddle_direction is self.paddle.direction.LEFT \
+                    or self.paddle.right < self.window_border_right \
+                    and paddle_direction is self.paddle.direction.RIGHT:
+                paddle_move_allowed = True
+            else:
+                paddle_move_allowed = False
 
-                # ball direction control
-                if self.ball.position()[y] == self.ball_boundary_top and \
-                        ball_direction_y is self.ball.direction.UP:
+            # move the ball with the paddle while game is not on
+            if game_started is False:
+                    self.ball.position(
+                        self.paddle.position()[0] + self.paddle.size()[0]/2 - self.ball.size()[0]/2,
+                        self.paddle.top - self.ball.size()[0]
+                    )
+
+            # ball movement control
+            if game_started is True:
+                self.ball.move(ball_direction_y)
+                self.ball.move(ball_direction_x)
+
+            # ball/boundary collision control
+            # left / right of border
+            if self.ball.left <= self.window_border_left or self.ball.right >= self.window_border_right:
+                ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+            # top / bottom of border
+            if self.ball.top <= self.window_border_top or self.ball.bottom >= self.window_border_bottom:
+                ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+
+            # ball/paddle collision control
+            if self.ball.bottom + self.ball.velocity()/3 >= self.paddle.top and self.ball.top < self.paddle.bottom \
+                    and ball_direction_y == self.ball.direction.DOWN:
+
+                if self.ball.left >= self.paddle.left and self.ball.right <= self.paddle.right:
                     ball_direction_y = self.ball.direction.opposite(ball_direction_y)
 
-                if self.ball.position()[x] == self.ball_boundary_left and \
-                        ball_direction_x is self.ball.direction.LEFT:
+                if self.ball.left >= self.paddle.left \
+                        and self.ball.right <= self.paddle.left + self.paddle_divert_range \
+                        and ball_direction_x == self.ball.direction.RIGHT \
+                        or self.ball.right <= self.paddle.right \
+                        and self.ball.left >= self.paddle.right - self.paddle_divert_range \
+                        and ball_direction_x == self.ball.direction.LEFT:
                     ball_direction_x = self.ball.direction.opposite(ball_direction_x)
 
-                if self.ball.position()[x] == self.ball_boundary_right and \
-                        ball_direction_x is self.ball.direction.RIGHT:
-                    ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+            # ball/block collision control
+            for block in self.level.map():
 
-                # bottom bounce, for testing
-                if self.ball.position()[y] == self.ball_boundary_bottom and \
-                        ball_direction_y is self.ball.direction.DOWN:
-                    ball_direction_y = self.ball.direction.opposite(ball_direction_y)
-
-                # ball/paddle collision
-
-                if self.ball.position()[y] + self.grid_y == self.paddle.position()[y] and \
-                        ball_direction_y is self.ball.direction.DOWN and \
-                        self.ball.position()[x] in \
-                        range(self.paddle.position()[x] - 10, self.paddle.position()[x] + self.paddle.size()[0] + 10):
-                    ball_direction_y = self.ball.direction.opposite(ball_direction_y)
-
-                # ball/block collision
-                for bx in self.level.map():
-
-                    # right
-                    if self.ball.position()[x] + self.grid_x == bx.position()[x] and \
-                            ball_direction_x is self.ball.direction.RIGHT and \
-                            self.ball.position()[y] in \
-                            range(bx.position()[y], bx.position()[y] + bx.size()[1]):
+                # right of ball
+                if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
+                    if self.ball.right + self.ball.velocity() >= block.left > self.ball.left\
+                            and ball_direction_x == self.ball.direction.RIGHT:
                         ball_direction_x = self.ball.direction.opposite(ball_direction_x)
-
-                    # left
-                    if self.ball.position()[x] - self.grid_x == bx.position()[x] and \
-                            ball_direction_x is self.ball.direction.LEFT and \
-                            self.ball.position()[y] in \
-                            range(bx.position()[y], bx.position()[y] + bx.size()[1]):
+                # left of ball
+                if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
+                    if self.ball.left - self.ball.velocity() <= block.right < self.ball.right\
+                            and ball_direction_x == self.ball.direction.LEFT:
                         ball_direction_x = self.ball.direction.opposite(ball_direction_x)
-
-                    # down
-                    if self.ball.position()[y] + self.grid_y == bx.position()[y] and \
-                            ball_direction_y is self.ball.direction.DOWN and \
-                            self.ball.position()[x] in \
-                            range(bx.position()[x], bx.position()[x] + bx.size()[0]):
+                # top of ball
+                if self.ball.left + self.ball.velocity() >= block.left \
+                        and self.ball.right - self.ball.velocity() <= block.right:
+                    if self.ball.top - self.ball.velocity() <= block.bottom < self.ball.bottom \
+                            and ball_direction_y == self.ball.direction.UP:
+                        self.level.hit(block)
+                        ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+                # bottom of ball
+                if self.ball.left >= block.left and self.ball.right <= block.right:
+                    if self.ball.bottom + self.ball.velocity() >= block.top > self.ball.top \
+                            and ball_direction_y == self.ball.direction.DOWN:
                         ball_direction_y = self.ball.direction.opposite(ball_direction_y)
 
-                    # up
-                    if self.ball.position()[y] - self.grid_y == bx.position()[y] and \
-                            ball_direction_y is self.ball.direction.UP and \
-                            self.ball.position()[x] in \
-                            range(bx.position()[x], bx.position()[x] + bx.size()[0]):
-                        ball_direction_y = self.ball.direction.opposite(ball_direction_y)
-                        self.level.hit(bx)
+            # render blocks
+            for render_block in self.level.map():
+                pygame.draw.rect(self.screen, *render_block.render())
 
-                # ball movement control
-                if time.time() - st > ball_speed:
-                    st = time.time()
-                    self.ball.move(ball_direction_y)
-                    self.ball.move(ball_direction_x)
-
-                # renders the ball
-                pygame.draw.rect(self.screen, *self.ball.render())
-
-            for b in self.level.map():
-                pygame.draw.rect(self.screen, *b.render())
+            # renders the ball
+            pygame.draw.rect(self.screen, *self.ball.render())
 
             pygame.display.flip()
 
