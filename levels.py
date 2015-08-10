@@ -21,72 +21,72 @@ class Level:
         # distance, distance, line - amount
         self.tiles = [
             [
-                (1, 10, 0),
+                (1, 10),
             ] * 4,
             [
-                (1, 4, 1),
+                (1, 4),
             ] * 10,
             [
-                (3, 10, 2),
+                (3, 10),
             ] * 2,
             [
-                (3, 4, 3),
+                (3, 4),
             ] * 4,
             [
-                (3, 4, 4),
+                (3, 4),
             ] * 4,
             [
-                (3, 4, 5),
+                (3, 4),
             ] * 4,
             [
-                (9, 4, 6),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 7),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 8),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 9),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 10),
+                (9, 4),
             ] * 2,
             [
-                (2, 8, 11),
+                (2, 8),
             ] * 3,
             [
-                (9, 4, 12),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 13),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 14),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 15),
+                (9, 4),
             ] * 2,
             [
-                (9, 4, 16),
+                (9, 4),
             ] * 2,
             [
-                (3, 10, 17),
+                (3, 10),
             ] * 2,
             [
-                (1, 4, 18),
+                (1, 4),
             ] * 10,
             [
-                (1, 10, 19),
+                (1, 10),
             ] * 4,
         ]
 
         # test block
         self._map = []
 
-        for line in self.tiles:
-            for x, (s, w, y) in enumerate(line):
+        for y, line in enumerate(self.tiles):
+            for x, (s, w) in enumerate(line):
                 self.block = Item()
                 self.block.size(w * self.grid_x, 1 * self.grid_y)
                 self.block.position(x * self.grid_x * w * s, y * self.grid_y)
