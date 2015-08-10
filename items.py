@@ -31,10 +31,7 @@ class Item:
         else:
             return self._size
 
-        self.left = self._position[0]
-        self.top = self._position[1]
-        self.right = self._position[0] + self._size[0]
-        self.bottom = self._position[1] + self._size[1]
+        self._update()
 
     def velocity(self, speed=None):
         """
@@ -61,10 +58,7 @@ class Item:
         else:
             return self._position
 
-        self.left = self._position[0]
-        self.top = self._position[1]
-        self.right = self._position[0] + self._size[0]
-        self.bottom = self._position[1] + self._size[1]
+        self._update()
 
     def colour(self, colour=None):
         """
@@ -92,10 +86,7 @@ class Item:
         if direction == self.direction.DOWN:
             self.position(y=move_y + self.velocity())
 
-        self.left = self._position[0]
-        self.top = self._position[1]
-        self.right = self._position[0] + self._size[0]
-        self.bottom = self._position[1] + self._size[1]
+        self._update()
 
     def render(self):
         """
@@ -104,3 +95,9 @@ class Item:
         """
         return self.colour(), (self.position()[0], self.position()[1],
                                self.size()[0], self.size()[1])
+
+    def _update(self):
+        self.left = self._position[0]
+        self.top = self._position[1]
+        self.right = self._position[0] + self._size[0]
+        self.bottom = self._position[1] + self._size[1]

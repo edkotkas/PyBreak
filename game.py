@@ -5,6 +5,7 @@ import os
 
 from items import Item
 from levels import Level
+from helpers import TextBox
 
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
@@ -59,7 +60,7 @@ class PyBreak:
         # ball settings
         self.ball = Item()
         self.ball.size(self.grid_x, self.grid_y)
-        self.ball.velocity(4)
+        self.ball.velocity(8)
         self.ball.position(
             self.paddle.position()[0] + self.paddle.size()[0]/2 - self.ball.size()[0]/2,
             self.paddle.top - self.ball.size()[0]
@@ -68,6 +69,9 @@ class PyBreak:
 
         # level settings
         self.level = Level(self.grid_x, self.grid_y)
+
+        # text box
+        self.text_box = TextBox
 
     def main_loop(self):
         """
@@ -80,6 +84,9 @@ class PyBreak:
         ball_direction_x = random.choice([self.ball.direction.LEFT, self.ball.direction.RIGHT])
 
         game_started = False
+        score = 0
+        level = 1
+        deaths = 0
 
         while True:
             self.screen.fill((10, 10, 10))
@@ -92,9 +99,6 @@ class PyBreak:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         sys.exit()
-
-                    if event.key == pygame.K_f:
-                        pygame.display.toggle_fullscreen()
 
                     if event.key == pygame.K_RIGHT:
                         paddle_direction = self.paddle.direction.RIGHT
@@ -146,14 +150,19 @@ class PyBreak:
 
             # ball/boundary collision control
             # left / right of border
-            if self.ball.left <= self.window_border_left or self.ball.right >= self.window_border_right:
-                ball_direction_x = self.ball.direction.opposite(ball_direction_x)
-            # top / bottom of border
-            if self.ball.top <= self.window_border_top or self.ball.bottom >= self.window_border_bottom:
-                ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+            if self.ball.left <= self.window_border_left:
+                ball_direction_x = self.ball.direction.RIGHT
+            if self.ball.right >= self.window_border_right:
+                ball_direction_x = self.ball.direction.LEFT
+            if self.ball.top <= self.window_border_top:
+                ball_direction_y = self.ball.direction.DOWN
+            # bottom of border
+            if self.ball.bottom >= self.window_border_bottom:
+                deaths += 1
+                game_started = False
 
             # ball/paddle collision control
-            if self.ball.bottom + self.ball.velocity()/3 >= self.paddle.top and self.ball.top < self.paddle.bottom \
+            if self.ball.bottom + self.ball.velocity()/2 >= self.paddle.top and self.ball.top < self.paddle.bottom \
                     and ball_direction_y == self.ball.direction.DOWN:
 
                 if self.ball.left >= self.paddle.left and self.ball.right <= self.paddle.right:
@@ -174,24 +183,32 @@ class PyBreak:
                 if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
                     if self.ball.right + self.ball.velocity() >= block.left > self.ball.left\
                             and ball_direction_x == self.ball.direction.RIGHT:
-                        ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+                        ball_direction_x = self.ball.direction.LEFT
+
                 # left of ball
                 if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
                     if self.ball.left - self.ball.velocity() <= block.right < self.ball.right\
                             and ball_direction_x == self.ball.direction.LEFT:
-                        ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+                        ball_direction_x = self.ball.direction.RIGHT
+
                 # top of ball
-                if self.ball.left + self.ball.velocity() >= block.left \
-                        and self.ball.right - self.ball.velocity() <= block.right:
+                if self.ball.left >= block.left and self.ball.right <= block.right:
                     if self.ball.top - self.ball.velocity() <= block.bottom < self.ball.bottom \
                             and ball_direction_y == self.ball.direction.UP:
+
                         self.level.hit(block)
-                        ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+                        ball_direction_y = self.ball.direction.DOWN
+
+                        score += 1
+                        if score % 10 == 0 and level < 3:
+                            level += 1
+                        #     self.ball.velocity(self.ball.velocity() + 1)
+
                 # bottom of ball
                 if self.ball.left >= block.left and self.ball.right <= block.right:
                     if self.ball.bottom + self.ball.velocity() >= block.top > self.ball.top \
                             and ball_direction_y == self.ball.direction.DOWN:
-                        ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+                        ball_direction_y = self.ball.direction.UP
 
             # render blocks
             for render_block in self.level.map():
@@ -199,6 +216,14 @@ class PyBreak:
 
             # renders the ball
             pygame.draw.rect(self.screen, *self.ball.render())
+
+            # renders the score text
+            score_text = self.text_box("Score: " + str(score), 21)
+            self.screen.blit(score_text.make(), (self.grid_x * 10, self.grid_y * 38))
+            level_text = self.text_box("Level: " + str(level), 21)
+            self.screen.blit(level_text.make(), (self.grid_x * 1, self.grid_y * 38))
+            death_text = self.text_box("Deaths: " + str(deaths), 21)
+            self.screen.blit(death_text.make(), (self.grid_x * 20, self.grid_y * 38))
 
             pygame.display.flip()
 
