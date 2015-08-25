@@ -60,7 +60,7 @@ class PyBreak:
         # ball settings
         self.ball = Item()
         self.ball.size(self.grid_x, self.grid_y)
-        self.ball.velocity(8)
+        self.ball.velocity(4)
         self.ball.position(
             self.paddle.position()[0] + self.paddle.size()[0]/2 - self.ball.size()[0]/2,
             self.paddle.top - self.ball.size()[0]
@@ -179,36 +179,55 @@ class PyBreak:
             # ball/block collision control
             for block in self.level.map():
 
-                # right of ball
-                if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
-                    if self.ball.right + self.ball.velocity() >= block.left > self.ball.left\
-                            and ball_direction_x == self.ball.direction.RIGHT:
-                        ball_direction_x = self.ball.direction.LEFT
+                if self.ball.top >= block.top \
+                        and self.ball.bottom <= block.bottom \
+                        and self.ball.left - self.ball.velocity() <= block.right < self.ball.right:
+                    ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+                    self.level.hit(block)
 
-                # left of ball
-                if self.ball.top >= block.top and self.ball.bottom <= block.bottom:
-                    if self.ball.left - self.ball.velocity() <= block.right < self.ball.right\
-                            and ball_direction_x == self.ball.direction.LEFT:
-                        ball_direction_x = self.ball.direction.RIGHT
+                    score += 1
 
-                # top of ball
-                if self.ball.left >= block.left and self.ball.right <= block.right:
-                    if self.ball.top - self.ball.velocity() <= block.bottom < self.ball.bottom \
-                            and ball_direction_y == self.ball.direction.UP:
+                    if score % 4 == 0 and level != 5:
+                        level += 1
+                        self.ball.velocity(self.ball.velocity() + 2)
 
-                        self.level.hit(block)
-                        ball_direction_y = self.ball.direction.DOWN
+                if self.ball.top >= block.top \
+                        and self.ball.bottom <= block.bottom \
+                        and self.ball.right + self.ball.velocity() >= block.left > self.ball.left:
+                    ball_direction_x = self.ball.direction.opposite(ball_direction_x)
+                    self.level.hit(block)
 
-                        score += 1
-                        if score % 10 == 0 and level < 3:
-                            level += 1
-                        #     self.ball.velocity(self.ball.velocity() + 1)
+                    score += 1
 
-                # bottom of ball
-                if self.ball.left >= block.left and self.ball.right <= block.right:
-                    if self.ball.bottom + self.ball.velocity() >= block.top > self.ball.top \
-                            and ball_direction_y == self.ball.direction.DOWN:
-                        ball_direction_y = self.ball.direction.UP
+                    if score % 4 == 0 and level != 5:
+                        level += 1
+                        self.ball.velocity(self.ball.velocity() + 2)
+
+                # bottom of block, top of ball
+                if self.ball.right <= block.right \
+                        and self.ball.left >= block.left \
+                        and self.ball.top - self.ball.velocity() <= block.bottom < self.ball.bottom:
+                    ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+                    self.level.hit(block)
+
+                    score += 1
+
+                    if score % 4 == 0 and level != 5:
+                        level += 1
+                        self.ball.velocity(self.ball.velocity() + 2)
+
+                # top of block, bottom of ball
+                if self.ball.right <= block.right \
+                        and self.ball.left >= block.left \
+                        and self.ball.bottom + self.ball.velocity() >= block.top > self.ball.top:
+                    ball_direction_y = self.ball.direction.opposite(ball_direction_y)
+                    self.level.hit(block)
+
+                    score += 1
+
+                    if score % 4 == 0 and level != 5:
+                        level += 1
+                        self.ball.velocity(self.ball.velocity() + 1)
 
             # render blocks
             for render_block in self.level.map():
@@ -218,12 +237,17 @@ class PyBreak:
             pygame.draw.rect(self.screen, *self.ball.render())
 
             # renders the score text
-            score_text = self.text_box("Score: " + str(score), 21)
-            self.screen.blit(score_text.make(), (self.grid_x * 10, self.grid_y * 38))
             level_text = self.text_box("Level: " + str(level), 21)
             self.screen.blit(level_text.make(), (self.grid_x * 1, self.grid_y * 38))
+
+            stage_text = self.text_box("Stage: " + str(0), 21)
+            self.screen.blit(stage_text.make(), (self.grid_x * 10, self.grid_y * 38))
+
+            score_text = self.text_box("Score: " + str(score), 21)
+            self.screen.blit(score_text.make(), (self.grid_x * 20, self.grid_y * 38))
+
             death_text = self.text_box("Deaths: " + str(deaths), 21)
-            self.screen.blit(death_text.make(), (self.grid_x * 20, self.grid_y * 38))
+            self.screen.blit(death_text.make(), (self.grid_x * 30, self.grid_y * 38))
 
             pygame.display.flip()
 
