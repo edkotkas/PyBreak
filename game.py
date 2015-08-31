@@ -4,7 +4,7 @@ import sys
 import os
 
 from items import Item
-from levels import Level
+from level import Level
 from helpers import TextBox
 
 os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -68,7 +68,7 @@ class PyBreak:
         self.ball.colour((255, 0, 100))
 
         # level settings
-        self.level = Level(self.grid_x, self.grid_y)
+        self.level = Level()
 
         # text box
         self.text_box = TextBox
@@ -179,9 +179,14 @@ class PyBreak:
             # ball/block collision control
             for block in self.level.map():
 
-                if self.ball.top >= block.top \
-                        and self.ball.bottom <= block.bottom \
-                        and self.ball.left - self.ball.velocity() <= block.right < self.ball.right:
+                # go to the next level once map is cleared
+                if self.level.cleared():
+                    game_started = False
+
+                block_rect = pygame.Rect(block[1])
+                if self.ball.top >= block_rect.top \
+                        and self.ball.bottom <= block_rect.bottom \
+                        and self.ball.left - self.ball.velocity() <= block_rect.right < self.ball.right:
                     ball_direction_x = self.ball.direction.opposite(ball_direction_x)
                     self.level.hit(block)
 
@@ -191,22 +196,22 @@ class PyBreak:
                         level += 1
                         self.ball.velocity(self.ball.velocity() + 2)
 
-                if self.ball.top >= block.top \
-                        and self.ball.bottom <= block.bottom \
-                        and self.ball.right + self.ball.velocity() >= block.left > self.ball.left:
+                if self.ball.top >= block_rect.top \
+                        and self.ball.bottom <= block_rect.bottom \
+                        and self.ball.right + self.ball.velocity() >= block_rect.left > self.ball.left:
                     ball_direction_x = self.ball.direction.opposite(ball_direction_x)
                     self.level.hit(block)
 
                     score += 1
 
-                    if score % 4 == 0 and level != 5:
+                    if score % 4 == 0 and level != 3:
                         level += 1
                         self.ball.velocity(self.ball.velocity() + 2)
 
                 # bottom of block, top of ball
-                if self.ball.right <= block.right \
-                        and self.ball.left >= block.left \
-                        and self.ball.top - self.ball.velocity() <= block.bottom < self.ball.bottom:
+                if self.ball.right <= block_rect.right \
+                        and self.ball.left >= block_rect.left \
+                        and self.ball.top - self.ball.velocity() <= block_rect.bottom < self.ball.bottom:
                     ball_direction_y = self.ball.direction.opposite(ball_direction_y)
                     self.level.hit(block)
 
@@ -217,9 +222,9 @@ class PyBreak:
                         self.ball.velocity(self.ball.velocity() + 2)
 
                 # top of block, bottom of ball
-                if self.ball.right <= block.right \
-                        and self.ball.left >= block.left \
-                        and self.ball.bottom + self.ball.velocity() >= block.top > self.ball.top:
+                if self.ball.right <= block_rect.right \
+                        and self.ball.left >= block_rect.left \
+                        and self.ball.bottom + self.ball.velocity() >= block_rect.top > self.ball.top:
                     ball_direction_y = self.ball.direction.opposite(ball_direction_y)
                     self.level.hit(block)
 
@@ -231,7 +236,7 @@ class PyBreak:
 
             # render blocks
             for render_block in self.level.map():
-                pygame.draw.rect(self.screen, *render_block.render())
+                pygame.draw.rect(self.screen, *render_block)
 
             # renders the ball
             pygame.draw.rect(self.screen, *self.ball.render())

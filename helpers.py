@@ -1,5 +1,6 @@
 import pygame
 
+
 class MoveHelper:
 
     def __init__(self):
@@ -22,6 +23,7 @@ class MoveHelper:
             return self.DOWN
         if direction == self.DOWN:
             return self.UP
+
 
 class TextBox:
 
